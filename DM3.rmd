@@ -1,0 +1,183 @@
+---
+title: "Devoir 3"
+output: pdf_document
+---
+
+*Thibaud Ritzenthaler*
+
+*Le code source est sur [Github](https://github.com/thibaud-ritzenthaler/M1demo-AD-devoir3)*.
+
+
+```{r include = FALSE}
+# Initialisation
+setwd("C:/Users/Thibaud/Documents/Demographie/M1S2/UE1 - Analyse demographique/Breton/DM3")
+
+library(tidyverse)
+library(readxl)
+library(knitr)
+library(questionr)
+
+library(cowplot)
+library(scales)
+library(gridExtra)
+library(ggpattern)
+library(ggrepel)
+```
+
+
+### Exercice 1 - Analyse transversale et longitudinale
+
+#### Introduction
+
+Cet exercice a pour objectif de mettre en avant les différences entre les chiffres issus d'une analyse longitudinal et transversale d'un même phénomène (effets de calendriers, effets de générations).
+
+
+#### Question 1
+
+```{r include = FALSE}
+SommeElemCal1 <- read_excel("./data/Donnees Devoir3.xlsx", sheet = "Exercice 1", range = "A3:B12")
+SommeElemCal2 <- read_excel("./data/Donnees Devoir3.xlsx", sheet = "Exercice 1", range = "D3:E11")
+
+SommeElemCal <- bind_rows(SommeElemCal1, SommeElemCal2) %>%
+        mutate(moyPeriode = as.numeric(substr(Periode, 1,4)) + 2 )
+```
+
+La somme des éléments de calendrier est supérieure à 1 quand le taux de fécondité, indicateur transversal, est plus élevé que la descendance finale, indicateur transversal et vice-versa. C'est le cas dans la majorité des années étudiées (*figure 1*), indiquant une baisse générale de la fécondité. On remarque trois chutes notables aux moments des guerres mondiales et autour de 1890. Cela est certainement dus à des chutes contextuelles, qui sont rattrapées avec un certain décalage de calendrier, pouvant expliquer les pics abrupts suivants ces creux. La chute de l'indice vers 1970 peux indiquer la fin de la baisse de la fécondité.
+
+
+#### Question 2
+```{r echo = FALSE}
+SommeElemCalTFR <- read_excel("./data/Donnees Devoir3.xlsx", sheet = "Exercice 1", range = "I16:K33") %>%
+        mutate(moyPeriode = as.numeric(substr(Periode, 1,4)) + 2 )
+```
+
+#### Question 3
+```{r echo = F}
+SommeNaissReduite <- read_excel("./data/Donnees Devoir3.xlsx", sheet = "Exercice 1", range = "A29:B46") %>%
+        mutate(moyPeriode = as.numeric(substr(Periode, 1,4)) + 2 )
+```
+
+### Exercice 2 – Pyramide d’une sous-population
+```{r include = FALSE}
+PopAgri <- read_excel("./data/Donnees Devoir3.xlsx", sheet = "Exercice 2", range = "A3:E19")
+
+PopAgri2 <- PopAgri  %>%
+  mutate(ageMoy = case_when(
+        !is.na(as.numeric(substr(age, 1,2)) + 2 ) ~ as.numeric(substr(age, 1,2)) + 2,
+        TRUE ~ as.numeric(substr(age, 1,1)) + 2)) %>%
+  mutate(anNaiss = 1964 - ageMoy)
+
+PopAgriTidy <- PopAgri2 %>%
+        rename(Homme = TauxHommes, Femme = TauxFemmes ) %>%
+        select(ageMoy, Homme, Femme, anNaiss) %>%
+        pivot_longer(c(Homme, Femme), "Sexe", values_to = "Taux") %>%
+        mutate(Taux = Taux * 100) %>%
+        mutate(label = case_when(
+                anNaiss == 1902 & Sexe == "Femme" ~  paste("Femmes"),
+                anNaiss == 1922 & Sexe == "Homme" ~  paste("Hommes"),
+                TRUE ~ NA_character_))
+
+PopAgriTidy2 <-  read_excel("./data/Donnees Devoir3.xlsx", sheet = "Exercice 2", range = "G3:I11") %>%
+        pivot_longer(c(Hommes, Femmes), "Sexe", values_to = "Population")
+```
+#### Introduction
+
+Cet exercice a pour objectif d'étudier les phénomènes démographiques au sein d'une population réduite afin de simuler une enquête réelle sur une population définie comme c'est souvent demandé dans le milieu professionnel ainsi que dans les études académiques spécifiques. Mobiliser ici les outils démographiques va permettre une approche analytique spécifique permettant la mise à jour des phénomènes démographiques.
+
+#### Question 1
+*Afin de construire un graphique parlant, le traitement effectué a été pour chaque intervalle d'âge de fixer un point à la moyenne de l'intervalle puis de le mettre en corrélation avec la proportion différenciée des agricultrices et des agriculteurs.*
+
+Ce pays est, au 1$^{er}$ Janvier 1964 encore un pays où la population agricole est relativement importante (*figure 4*), entre 9,7 % chez les femmes nées entre 1940 et 1944 et 22,5 % chez les hommes nées entre 1900 et 1904. Les femmes sont, globalement et a tout âge, moins nombreuses en proportion à vivre sur une exploitation agricole. Ce phénomène peut être du a une population féminine moins nombreuse à être agricultrices, mais aussi a une proportion de femmes plus importante dans la société par rapport à celle des hommes. Au vu de la période de creux autour de 1916, cette hypothèse est plausible.
+La proportion de la population vivant sur une exploitation agricole baisse depuis le début du XX$^{ème}$ siècle. Une interpretation pourrait être qu'alors que la dynamique de la transition démographique fait grandir les effectifs, industrialisation du pays crée un exode rural qui a fait migrer une partie de la population vers les villes. Une autre interpretation pourrait être que l'espérance de vie de la population étudiée est plus faible que la population générale, ce qui fait mécaniquement baisser la proportion de personnes au dela de 65 ans.
+
+#### Question 2
+
+Pour completer l'analyse de la courbe, on constate en s'intéressant à la pyramide des âges de la population étudiée, qu'entre 20 et 30 ans, il y a un creux (*figure 5*). C'est aussi l'un des âges ou la part de femmes est la plus faible par rapport à celle des hommes. On peut supposer que cela soit dû au départ des enfants vers des études ou du travail non agricole, ou un effet de la seconde guerre mondiale. À l'inverse, la population de moins de 20 ans est nombreuse, signe, probablement, d'un taux de fécondité assez haut dans cette population à cette date et plus encore 10 ans auparavant, possiblement un baby-boom d'après-guerre, les 10-20 ans étant les plus nombreux de leur classe d'âge.
+À partir de 30 ans, la population est plus nombreuse signe, soit d'un retour, soit de nouveau entrants.
+Cette pyramide permet de valider, au moins en partie, l'analyse que les femmes ne sont pas moins nombreuses que les hommes en effectif : elles sont, aux âges plus élevés, plus nombreuses que ces derniers, disposant d'une meilleure espérance de vie, mais sont proportionnellement beaucoup moins nombreuse dans la population générale, signe d'une surmortalité flagrante.
+
+### Exercice 3 : Analyse transversale et longitudinale de l’entrée dans le SIDA
+
+#### Introduction
+
+Cet exercice a pour but d'étudier une population réduite définie dans le cadre de deux indices, longitudinaux et transversaux.
+
+### Commentaire
+
+Les chiffres de la figure 1 sont issus d'une enquête rétrospective de 2002 mettant en avant les entrées réduites au sein des générations, c'est-à-dire l'effectif qui est rentré dans le SIDA par année de naissance. Le second graphique montre l'effectif rentrant dans le SIDA chaque année.
+Les générations les plus concernées par l'entrée dans le SIDA sont les générations à partir de 1946 jusqu'à 1978, ou le phénomène s'éteint quasiment. Pour l'entrée dans le SIDA, elle ne commence pas avant 1982 et le début de la pandémie de VIH. Elle croît jusqu'à subir un coup d'arrêt en 1995 ou elle décroit brutalement jusqu'à ralentir sa décroissance en 1998, suite, probablement à une plus faible contamination du VIH et la découverte de remède permettant de rester séropositif sans entrer dans la phase du SIDA. Les jeunes générations en 2002 qui sont en âge d'être sexuellement actives ont été prévenue des risques et ont accès au traitement ce qui fait que leurs générations sont peu sujettes au SIDA, contrairement aux générations des années 60 qui sont dans leur vingtaine au moment où le nombre d'entrées dans le SIDA est le plus fort et sans traitements ni connaisances de la maladie. Les générations plus anciennes étant plus souvent en couples exclusifs et les femmes ayants moins de comportement à risques ont mécaniquement moins de possibilité d'entrer dans le SIDA.
+
+
+
+### Annexes
+##### Figures exercice 1
+*:*
+
+```{r echo = FALSE}
+ggplot()+
+  geom_line(data = SommeElemCal,linewidth = 1.1,colour = "#B22222", aes(x = moyPeriode, y = SommeElemCal))+
+  ylab("Somme des \u00e9l\u00e9ments de calendrier")+
+  xlab("Ann\u00e9es")+
+  theme_light()+
+  theme(legend.position = "none")
+```
+*Figure 1 : Somme des éléments de calendrier recensés entre 1886 et 1970*
+
+```{r echo = FALSE}
+ggplot(SommeElemCalTFR, aes(x = moyPeriode)) +
+        geom_line(colour = "#B22222",linewidth = 1.1, aes( y = `ElementsCalendrier20-25`)) +
+        geom_line(colour = "#FF8C00", linetype = "longdash",linewidth = 1.1, aes( y = `TF20-24AR`/1000)) +
+        ylab("Elements de calendrier/Taux de f\u00e9condit\u00e9")+
+        xlab("Ann\u00e9e")+
+        theme_light()
+```
+*Figure 2 : Elements de calendrier de 20-25 ans (en rouge plein) et taux de fécondité à 20-24 ans en années révolues recensés entre 1886 et 1970*
+
+```{r echo = FALSE}
+ggplot()+
+        geom_line(data = SommeNaissReduite,linewidth = 1.1,colour = "#B22222", aes(x = moyPeriode, y = SommeNaissRed))+
+        ylab("Somme des naissances r\u00e9duites")+
+        xlab("Ann\u00e9es")+
+        theme_light()+
+        theme(legend.position = "none")
+```
+*Figure 3 : Evolution de la somme des naissances réduites pour 1 femme*
+
+##### Figures exercice 2
+*:*
+
+```{r echo = FALSE, warning = F}
+ggplot(PopAgriTidy) +
+  geom_line(aes(x = as.numeric(anNaiss), y = Taux, linetype = as.factor(Sexe), color = as.factor(Sexe) , size = as.factor(Sexe))) +
+  scale_linetype_manual(expression(a[n]), values = c("solid", "longdash", "twodash", "dashed", "dotdash"))+
+  scale_color_manual(expression(a[n]),values=c("#2c8ecb","#71a257", "#9a5f90", "#412ccb", "#2c8ecb"))+
+  scale_size_manual(expression(a[n]),values=c(1, 1, 1, 1, 1, 1, 1, 1, 1))+
+  ylab("Taux d'agriculteur.ice.s (%)")+
+  xlab("Ann\u00e9e de naissance")+
+  geom_label_repel(aes(x = as.numeric(anNaiss), y = Taux, label = label),
+                   nudge_x = -1,
+                   nudge_y = 1,
+                   na.rm = TRUE,
+                   min.segment.length = 0
+  )+
+  theme_light()+
+  theme(legend.position= "none")
+```
+*Figure 4 : Taux de population vivant sur les exploitations agricoles au 1er Janvier 1964 par année de naissance et par sexe dans la population générale.*
+
+
+```{r echo = FALSE}
+ggplot(PopAgriTidy2, aes(x = Age, pattern_fill = Sexe, pattern_density = Sexe, y = ifelse(Sexe == "Hommes",-Population, Population)), fill = 'white', pattern_fill = c('#2c8ecb', '#71a257')) +
+        geom_bar_pattern(data = subset(PopAgriTidy2, Sexe == "Femmes"), stat = "identity", colour = '#2c8ecb', pattern_colour  = '#2c8ecb')+
+        geom_bar_pattern(data = subset(PopAgriTidy2, Sexe == "Hommes"), stat = "identity", colour = '#71a257', pattern_colour  = '#71a257', fill = 'white',)+
+        scale_y_continuous(labels = function (x) scales::number(abs(x)), limits = max(PopAgriTidy2$Population) * c(-1,1)) +
+        scale_pattern_density_manual("Sexe",values = c(1, 0.5)) +
+        scale_pattern_fill_manual("Sexe", values = c('#2c8ecb', '#71a257')) +
+        scale_fill_manual("Sexe", values = c("#2c8ecb","#71a257"))+
+        coord_flip() +
+        theme_light() +
+        ylab("") +
+        xlab("")
+
+```
+*Figure 5 : Pyramide des âges de la population vivant sur les exploitations agricoles au 1er Janvier 1964 *
